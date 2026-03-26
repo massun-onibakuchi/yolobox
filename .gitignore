@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+.DS_Store
+*.log
+
+.env
+.automation/scheduled-codex/config.env
+.automation/scheduled-codex/logs/
+
+.worktrees/
+PLAN.md
+
+__pycache__

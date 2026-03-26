@@ -1,0 +1,21 @@
+default_engine = "codex"
+transport = "telegram"
+
+[transports.telegram]
+session_mode = "chat"
+show_resume_line = false
+
+[transports.telegram.topics]
+enabled = true
+scope = "auto"
+
+[transports.telegram.files]
+enabled = true
+auto_put = true
+auto_put_mode = "upload"
+uploads_dir = "incoming"
+allowed_user_ids = [123456789]
+deny_globs = [".git/**", ".env", ".envrc", "**/*.pem", "**/.ssh/**"]
+
+# [projects.<project-slug>]
+# path = "/workspace/projects/<dir>"
