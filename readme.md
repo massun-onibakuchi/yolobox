@@ -10,6 +10,62 @@ For full telegram control of agents, use [takopi](https://github.com/banteg/tako
 
 For simple completion notifications, use this codex `notify` [script](https://github.com/banteg/agents/tree/master) to send a telegram message at the end of each turn.
 
+### Scheduled Agent Runner
+
+Yolobox also includes a container-local scheduler for unattended coding-agent tasks. The first supported harness is Codex; the public command and config paths use agent-runner naming so Claude Code or other harnesses can be added later without another rename.
+
+Edit [.automation/scheduled-agent-runner/config.toml](.automation/scheduled-agent-runner/config.toml) and set:
+
+- `telegram.bot_token`
+- `codex.default_model`
+- `codex.allowed_models`
+- `scheduler.timezone`
+
+Run commands from the Yolobox repo root or a child directory. If you install the package and run it elsewhere, pass `--config /path/to/config.toml` or set `SCHEDULED_AGENT_RUNNER_CONFIG`.
+
+```sh
+uv sync --extra dev
+bin/scheduled-agent-runner schedule \
+  --task nightly-review \
+  --when "weekdays 09:00" \
+  --prompt "Review the repository and propose changes." \
+  --chat-id 123456789 \
+  --session-mode fresh
+```
+
+```sh
+bin/scheduled-agent-runner status
+bin/scheduled-agent-runner run
+```
+
+`run` is resilient by default. If an unexpected scheduler-loop error occurs, it writes the traceback to `logs/scheduler.log`, waits `scheduler.error_backoff_seconds`, and continues. User interruption with `Ctrl-C` exits cleanly with code `130` and is not retried. `run --once` logs unexpected loop errors and exits non-zero.
+
+Manage existing tasks:
+
+```sh
+bin/scheduled-agent-runner pause --task nightly-review
+bin/scheduled-agent-runner resume --task nightly-review
+bin/scheduled-agent-runner edit --task nightly-review --prompt "Review only changed files." --model gpt-5.4-mini
+bin/scheduled-agent-runner remove --task nightly-review
+```
+
+Use `--session-mode resume` when a task should continue the same Codex thread across runs. The default is `fresh`.
+
+Supported schedules include one-time and recurring forms:
+
+```text
+in 5m
+in 2h
+every 30m
+every 6h
+daily 09:00
+weekdays 14:30
+mon,wed,fri 18:45
+cron "0 9 * * 1-5"
+```
+
+`in <duration>` schedules run once and are disabled after their due run is attempted.
+
 #### Setup Takopi
 
 ```sh

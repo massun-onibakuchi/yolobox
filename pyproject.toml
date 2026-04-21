@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scheduled-agent-runner"
+version = "0.1.0"
+description = "Container-local scheduler for Codex tasks with Telegram notifications"
+readme = "readme.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+scheduled-agent-runner = "scheduled_agent_runner.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
