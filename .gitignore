@@ -5,8 +5,8 @@ dist/
 *.log
 
 .env
-.automation/scheduled-agent-runner/state.sqlite3
-.automation/scheduled-agent-runner/logs/
+.automation/scheduled-codex/config.env
+.automation/scheduled-codex/logs/
 
 .worktrees/
 PLAN.md
