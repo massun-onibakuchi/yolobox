@@ -15,6 +15,11 @@ import sys
 import shutil
 from pathlib import Path
 
+AGENT_NPM_PACKAGES = {
+    "claude": ("@anthropic-ai/claude-code", "CLAUDE_CODE_VERSION"),
+    "codex": ("@openai/codex", "CODEX_VERSION"),
+}
+
 FISH_CONFIG = """\
 # default fish config for the devcontainer
 set -g __fish_git_prompt_showdirtystate 0
@@ -252,6 +257,52 @@ def has_command(command: str) -> bool:
     return shutil.which(command) is not None
 
 
+def npm_package_spec(package_name: str, version_env: str) -> str:
+    version = os.environ.get(version_env, "latest").strip() or "latest"
+    return f"{package_name}@{version}"
+
+
+def ensure_agent_cli(command: str, package_name: str, version_env: str) -> None:
+    # Global npm installs can be left half-written if the image build is
+    # interrupted; validating the executable catches empty package.json files.
+    version_check = run_command([command, "--version"])
+    if version_check.returncode == 0:
+        first_line = version_check.stdout.strip().splitlines()
+        detail = f" ({first_line[0]})" if first_line else ""
+        log(f"{command} cli already works{detail}")
+        return
+
+    log(
+        f"{command} cli failed health check; reinstalling {package_name}: "
+        f"{version_check.stderr.strip()}"
+    )
+    if not has_command("npm"):
+        log(f"npm not found; cannot repair {command} cli")
+        return
+
+    install = run_command(
+        ["npm", "install", "-g", npm_package_spec(package_name, version_env)]
+    )
+    if install.returncode != 0:
+        log(f"failed to reinstall {package_name}: {install.stderr.strip()}")
+        return
+
+    repaired_check = run_command([command, "--version"])
+    if repaired_check.returncode != 0:
+        log(
+            f"{command} cli still fails after reinstall: "
+            f"{repaired_check.stderr.strip()}"
+        )
+        return
+
+    log(f"repaired {command} cli with {package_name}")
+
+
+def ensure_agent_clis() -> None:
+    for command, (package_name, version_env) in AGENT_NPM_PACKAGES.items():
+        ensure_agent_cli(command, package_name, version_env)
+
+
 def ensure_path_entry(path: Path) -> None:
     if not path.exists():
         return
@@ -384,6 +435,7 @@ def main() -> None:
     ensure_fish_history()
     ensure_global_gitignore(workspace)
     ensure_git_worktree_relative_paths()
+    ensure_agent_clis()
     ensure_codex_config()
     ensure_claude_config()
     ensure_fish_config()
