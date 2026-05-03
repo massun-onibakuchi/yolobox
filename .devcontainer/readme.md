@@ -25,6 +25,9 @@ the built in terminal would login inside the container.
 - **overwrites `.devcontainer/`** on every run
 - default shell is fish, zsh available for agents
 - auth and history persist across rebuilds via docker volumes
+- post-create setup validates `claude --version` and `codex --version`; if a
+  global npm install is incomplete, it reinstalls the broken CLI and verifies it
+  again using the configured image version
 - git config is mounted from host `${HOME}/.config/git/config` to `/home/node/.gitconfig` (read-only)
 - the image includes `build-essential` so Rust-based post-create installs have a
   working linker/toolchain
@@ -44,5 +47,8 @@ the built in terminal would login inside the container.
 
 - if `devcontainer up` fails with `bind source path does not exist` for `.config/git/config`, create that host file or adjust the mount in `devcontainer.json`
 - if `cargo install worktrunk` fails during post-create with `No such file or directory (os error 2)`, rebuild after picking up this image change; that error was caused by a missing system linker
+- if `codex` fails with `ERR_INVALID_PACKAGE_CONFIG` for the global
+  `@openai/codex` package, rerun post-create setup or rebuild; the setup now
+  detects that broken install and repairs it with npm
 - if you want relative worktree paths, set this on the host in `${HOME}/.config/git/config`:
   `[worktree] useRelativePaths = true`

@@ -22,22 +22,11 @@ uv tool install -U takopi
 takopi --onboard
 ```
 
-<!-- ### Login to Coding agents -->
-<!---->
-<!-- ```sh -->
-<!-- codex login -->
-<!-- claude login -->
-<!-- ``` -->
-<!---->
-<!-- ### Authenticate gh and git with GitHub -->
-<!---->
-<!-- ```sh -->
-<!-- gh auth login -->
-<!-- ``` -->
-<!---->
-<!-- ```sh -->
-<!-- devcontainer up --workspace-folder . -->
-<!-- devcontainer exec --workspace-folder . fish -->
+### Authenticate gh and git with GitHub
+
+```sh
+gh auth login
+```
 
 ### Devcontainer
 

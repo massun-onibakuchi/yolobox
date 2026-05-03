@@ -11,6 +11,8 @@ FROM ${NODE_IMAGE} AS node
 
 ARG CLAUDE_CODE_VERSION=latest
 ARG CODEX_VERSION=latest
+ENV CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}" \
+    CODEX_VERSION="${CODEX_VERSION}"
 
 # Build-time npm defaults.
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global \
@@ -31,6 +33,14 @@ RUN --mount=type=cache,target=/root/.npm \
   && corepack enable --install-directory /usr/local/share/npm-global/bin \
   && corepack prepare pnpm@latest --activate
 
+# Validate the npm-installed launchers before copying them into the final image.
+# A cached or interrupted global install can leave an empty package.json behind.
+RUN --mount=type=cache,target=/root/.npm \
+  if ! codex --version; then npm install -g "@openai/codex@${CODEX_VERSION}"; fi \
+  && if ! claude --version; then npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; fi \
+  && codex --version \
+  && claude --version
+
 FROM ubuntu:25.10
 
 ARG TZ
@@ -38,6 +48,8 @@ ENV TZ="${TZ}"
 
 ARG CLAUDE_CODE_VERSION=latest
 ARG CODEX_VERSION=latest
+ENV CLAUDE_CODE_VERSION="${CLAUDE_CODE_VERSION}" \
+    CODEX_VERSION="${CODEX_VERSION}"
 
 # Install common dev tools.
 # Note: we intentionally do NOT install iptables/ipset or ship a firewall script.
@@ -72,6 +84,16 @@ RUN if command -v fdfind >/dev/null 2>&1 && [ ! -e /usr/local/bin/fd ]; then \
 # Bring in node + npm from the official node image (fast, no apt deps).
 COPY --from=node /usr/local/ /usr/local/
 RUN node -v && npm -v
+
+# Revalidate after the cross-stage copy. Docker layer cache can preserve a stale
+# final-stage copy even when the source stage has been repaired.
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH="${PATH}:/usr/local/share/npm-global/bin"
+RUN --mount=type=cache,target=/root/.npm \
+  if ! codex --version; then npm install -g "@openai/codex@${CODEX_VERSION}"; fi \
+  && if ! claude --version; then npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"; fi \
+  && codex --version \
+  && claude --version
 
 # Ensure git worktrees use relative paths by default.
 RUN git config --system worktree.useRelativePaths true \
@@ -124,8 +146,6 @@ RUN mkdir -p /workspace /home/node/.claude /home/node/.codex /home/node/.npm /ho
 WORKDIR /workspace
 
 # Install global packages.
-ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH="${PATH}:/usr/local/share/npm-global/bin"
 ENV NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
